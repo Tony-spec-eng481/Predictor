@@ -6,7 +6,10 @@ import type {
   AIStatusResponse, AIConfig, AIDecision, AISessionStats, AIHistoryResponse, AIAnalysis
 } from './types'
 
-const API_BASE = '/api'
+// In production, Vite proxy is not active. Prepend the API server URL if defined in the env (e.g. VITE_API_URL=https://predictor-python.onrender.com)
+const API_BASE = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
+  : '/api'
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, {
