@@ -1,4 +1,4 @@
-// Shared TypeScript interfaces for the SpotPesa Aviator Analytics platform
+// Shared TypeScript interfaces for the SportPesa Road Worx Analytics platform
 
 export interface Stats {
   total_rounds: number
@@ -9,6 +9,7 @@ export interface Stats {
   most_frequent_multiplier: number
   last_multiplier: number
   recent_multipliers: number[]
+  low_multiplier_prob: number
   trends: {
     rounds_24h: number
     avg_24h: number
@@ -131,3 +132,147 @@ export interface CryptoAnalysis {
   verification_rate: number
 }
 
+export interface SocketContext {
+  socket: any
+  connected: boolean
+}
+
+// ===== AI Trading Types =====
+
+export interface AIConfig {
+  bankroll: number
+  risk_level: 'conservative' | 'moderate' | 'aggressive'
+  max_bet_pct: number
+  max_bet_abs: number
+  stop_loss_pct: number
+  take_profit_pct: number
+  kelly_fraction: number
+  min_data_points: number
+  analysis_window: number
+  cooldown_after_loss: number
+  max_consecutive_losses: number
+  dry_run: boolean
+  target_win_rate: number
+  preferred_targets: number[]
+  w_prob_high?: number
+  w_prob_med?: number
+  w_mr_oversold?: number
+  w_vol_low?: number
+  w_streak_low?: number
+  w_data_quality?: number
+  w_mr_overbought?: number
+  w_vol_high?: number
+  w_streak_high?: number
+  w_prob_low?: number
+  w_loss_penalty?: number
+  confidence_threshold?: number
+  weight_ev?: number
+  weight_prob?: number
+}
+
+export interface AIDecision {
+  action: 'bet' | 'skip' | 'stop_session'
+  stake: number
+  target_multiplier: number
+  confidence: number
+  reasoning: string
+  risk_level: 'low' | 'medium' | 'high'
+  analysis: AIAnalysis | Record<string, never>
+}
+
+export interface AISessionStats {
+  session_id: string
+  started_at: string
+  total_bets: number
+  wins: number
+  losses: number
+  skips: number
+  current_balance: number
+  starting_balance: number
+  peak_balance: number
+  lowest_balance: number
+  total_profit_loss: number
+  win_rate: number
+  roi: number
+  best_trade: number
+  worst_trade: number
+  current_streak: number
+  longest_win_streak: number
+  longest_loss_streak: number
+  consecutive_losses: number
+  rounds_since_last_bet: number
+  equity_curve: number[]
+  is_running: boolean
+  is_dry_run: boolean
+}
+
+export interface AITradeResult {
+  outcome: 'win' | 'loss'
+  stake: number
+  target: number
+  actual: number
+  profit_loss: number
+  balance: number
+  is_dry_run: boolean
+}
+
+export interface AIBetLogEntry {
+  id: number
+  timestamp: string
+  action: string
+  stake: number | null
+  target_multiplier: number | null
+  actual_multiplier: number | null
+  profit_loss: number | null
+  balance_before: number | null
+  balance_after: number | null
+  confidence: number | null
+  risk_level: string | null
+  reasoning: string | null
+  outcome: string | null
+  session_id: string | null
+  is_dry_run: boolean
+}
+
+export interface AIAnalysis {
+  data_points: number
+  mean: number
+  median: number
+  stdev: number
+  variance: number
+  skewness: number
+  mean_5: number
+  mean_10: number
+  mean_20: number
+  distribution: Record<string, number>
+  distribution_counts: Record<string, number>
+  probabilities: Record<string, number>
+  streaks: {
+    current_type: 'high' | 'low' | null
+    current_length: number
+    max_low: number
+    max_high: number
+  }
+  volatility_10: number
+  volatility_20: number
+  mean_reversion: {
+    signal: 'oversold' | 'overbought' | 'neutral'
+    strength: number
+    deviation: number
+  }
+  last_5: number[]
+}
+
+export interface AIStatusResponse {
+  is_running: boolean
+  session?: AISessionStats
+  config?: AIConfig
+  message?: string
+}
+
+export interface AIHistoryResponse {
+  history: AIBetLogEntry[]
+  total: number
+  page: number
+  per_page: number
+}

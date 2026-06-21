@@ -4,10 +4,10 @@ import { io, Socket } from 'socket.io-client'
 import {
   BarChart3,
   Database,
-  Activity,
   Zap,
   Menu,
   X,
+  Brain,
 } from 'lucide-react'
 import './Layout.css'
 
@@ -40,9 +40,9 @@ export default function Layout() {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: BarChart3 },
+    { path: '/ai-trader', label: 'AI Trader', icon: Brain },
     { path: '/collect', label: 'Data Collection', icon: Zap },
     { path: '/history', label: 'History', icon: Database },
-    { path: '/analytics', label: 'Analytics', icon: Activity },
   ]
 
   return (
@@ -54,7 +54,7 @@ export default function Layout() {
             <div className="navbar-logo">
               <span className="navbar-logo-icon">✈</span>
               <div className="navbar-logo-text">
-                <h1>Aviator Analytics</h1>
+                <h1>Road Worx Analytics</h1>
                 <p>SpotPesa Data Hub</p>
               </div>
             </div>
