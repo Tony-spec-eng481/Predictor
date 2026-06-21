@@ -74,6 +74,12 @@ export default function AITrader() {
           setIsDryRun(aiStatus.session.is_dry_run)
         }
       }
+      if (aiStatus.is_training !== undefined) {
+        setIsTraining(aiStatus.is_training)
+      }
+      if (aiStatus.last_training_result) {
+        setTrainingResult(aiStatus.last_training_result)
+      }
     }
   }, [aiStatus])
 
@@ -93,15 +99,29 @@ export default function AITrader() {
         setIsDryRun(s.is_dry_run)
       }
     }
+    const onTrainingStarted = () => {
+      setIsTraining(true)
+      setStatusMsg('AI auto-optimization started in background...')
+    }
+    const onTrainingCompleted = (data: any) => {
+      setIsTraining(false)
+      setTrainingResult(data)
+      setStatusMsg('AI auto-optimization completed successfully!')
+      refetchStatus()
+    }
 
     socket.on('ai_decision', onDecision)
     socket.on('ai_trade_result', onResult)
     socket.on('ai_status_update', onStatusUpdate)
+    socket.on('ai_training_started', onTrainingStarted)
+    socket.on('ai_training_completed', onTrainingCompleted)
 
     return () => {
       socket.off('ai_decision', onDecision)
       socket.off('ai_trade_result', onResult)
       socket.off('ai_status_update', onStatusUpdate)
+      socket.off('ai_training_started', onTrainingStarted)
+      socket.off('ai_training_completed', onTrainingCompleted)
     }
   }, [socket, refetchHistory, refetchStatus])
 
@@ -346,63 +366,68 @@ export default function AITrader() {
         {/* AI Self-Training Panel */}
         <div className="ai-config-card ai-training-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 12px 0' }}>
-              <Brain size={16} color="#8b5cf6" />
-              Self-Training & Optimization
-            </h3>
-            <p style={{ fontSize: '12px', color: '#64748b', margin: '-4px 0 16px 0', lineHeight: '1.4' }}>
-              Backtest the AI engine against recent rounds to dynamically optimize Kelly bet sizes and heuristic decision weights.
-            </p>
-
-            <div className="ai-config-grid" style={{ marginBottom: '16px' }}>
-              <div className="ai-config-field">
-                <label>Training Sample</label>
-                <select
-                  value={trainingRounds}
-                  onChange={(e) => setTrainingRounds(Number(e.target.value))}
-                  disabled={isTraining || isRunning}
-                  style={{ width: '100%' }}
-                >
-                  <option value={200}>Last 200 Rounds</option>
-                  <option value={500}>Last 500 Rounds</option>
-                  <option value={1000}>Last 1000 Rounds</option>
-                  <option value={2000}>Last 2000 Rounds</option>
-                </select>
-              </div>
-              <div className="ai-config-field" style={{ justifyContent: 'flex-end' }}>
-                <button
-                  className="ai-btn ai-btn-start"
-                  onClick={handleTrain}
-                  disabled={isTraining || isRunning}
-                  style={{ background: 'linear-gradient(135deg, #8b5cf6, #d946ef)', height: '38px', marginTop: '18px', width: '100%' }}
-                >
-                  {isTraining ? (
-                    <>
-                      <span className="spinner" />
-                      Optimizing...
-                    </>
-                  ) : (
-                    <>
-                      <Activity size={14} />
-                      Train Model
-                    </>
-                  )}
-                </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                <Brain size={16} color="#8b5cf6" />
+                Autonomous Self-Training
+              </h3>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: '20px',
+                fontSize: '11px',
+                fontWeight: 600,
+                background: isTraining ? 'rgba(139, 92, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                color: isTraining ? '#8b5cf6' : '#16a34a',
+                border: `1px solid ${isTraining ? 'rgba(139, 92, 246, 0.2)' : 'rgba(34, 197, 94, 0.2)'}`
+              }}>
+                <span className="ai-status-dot" style={{
+                  width: '6px',
+                  height: '6px',
+                  background: isTraining ? '#8b5cf6' : '#22c55e',
+                  boxShadow: `0 0 0 2px ${isTraining ? 'rgba(139, 92, 246, 0.2)' : 'rgba(34, 197, 94, 0.2)'}`,
+                  animation: 'aiPulse 2s infinite'
+                }} />
+                {isTraining ? 'OPTIMIZING' : 'AUTOMATIC'}
               </div>
             </div>
+            
+            <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px 0', lineHeight: '1.4' }}>
+              The engine automatically triggers background self-training every 100 rounds to optimize Kelly bet sizes and heuristic decision weights.
+            </p>
 
-            {/* Training Results comparison */}
+            {isTraining && (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '24px 16px',
+                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.03), rgba(217, 70, 239, 0.03))',
+                border: '1px dashed rgba(139, 92, 246, 0.2)',
+                borderRadius: '12px',
+                marginBottom: '16px'
+              }}>
+                <span className="spinner" style={{ borderTopColor: '#8b5cf6', width: '20px', height: '20px', borderWidth: '2px' }} />
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6d28d9' }}>Running genetic optimization algorithms...</span>
+              </div>
+            )}
+
+            {/* Training Results scorecard */}
             {trainingResult ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', opacity: isTraining ? 0.6 : 1, transition: 'opacity 0.3s' }}>
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(217, 70, 239, 0.05))',
-                  border: '1px dashed rgba(139, 92, 246, 0.2)',
+                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.04), rgba(217, 70, 239, 0.04))',
+                  border: '1px dashed rgba(139, 92, 246, 0.15)',
                   borderRadius: '10px',
                   padding: '12px',
                   fontSize: '12px'
                 }}>
                   <div style={{ fontWeight: 600, color: '#4c1d95', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>TRAINING SCORECARD</span>
+                    <span>LATEST OPTIMIZATION</span>
                     <span style={{ color: '#059669', fontWeight: 700 }}>+{trainingResult.improvement_pct}% P/L Lift</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -434,18 +459,79 @@ export default function AITrader() {
                 </div>
               </div>
             ) : (
-              <div className="ai-empty-state" style={{ padding: '16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                <div style={{ fontSize: '24px', marginBottom: '6px' }}>⚙️</div>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Heuristics Active</div>
-                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Using baseline rules. Train model to calculate optimal risk parameters.</div>
+              !isTraining && (
+                <div className="ai-empty-state" style={{ padding: '16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                  <div style={{ fontSize: '24px', marginBottom: '6px' }}>⚙️</div>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Heuristics Active</div>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Using baseline rules. Self-training runs automatically once data points accumulate.</div>
+                </div>
+              )
+            )}
+          </div>
+
+          {/* Secondary manual optimization section */}
+          <div style={{ marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500, textTransform: 'uppercase' }}>Sample:</span>
+                <select
+                  value={trainingRounds}
+                  onChange={(e) => setTrainingRounds(Number(e.target.value))}
+                  disabled={isTraining || isRunning}
+                  style={{
+                    fontSize: '11px',
+                    padding: '4px 8px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '6px',
+                    background: '#f8fafc',
+                    color: '#475569',
+                    outline: 'none',
+                    fontWeight: 500
+                  }}
+                >
+                  <option value={200}>200 Rounds</option>
+                  <option value={500}>500 Rounds</option>
+                  <option value={1000}>1000 Rounds</option>
+                  <option value={2000}>2000 Rounds</option>
+                </select>
+              </div>
+              
+              <button
+                onClick={handleTrain}
+                disabled={isTraining || isRunning}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: isTraining || isRunning ? '#94a3b8' : '#8b5cf6',
+                  background: 'none',
+                  border: 'none',
+                  cursor: isTraining || isRunning ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  if (!isTraining && !isRunning) {
+                    e.currentTarget.style.backgroundColor = 'rgba(139, 92, 246, 0.06)';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <Activity size={12} />
+                Optimize Now
+              </button>
+            </div>
+            {isRunning && (
+              <div style={{ fontSize: '10px', color: '#ef4444', textAlign: 'center', marginTop: '6px', fontWeight: 500 }}>
+                Manual tune unavailable while AI session is active.
               </div>
             )}
           </div>
-          {isRunning && (
-            <div style={{ fontSize: '11px', color: '#ef4444', textAlign: 'center', marginTop: '10px', fontWeight: 500 }}>
-              ⚠️ Cannot retrain while AI session is active.
-            </div>
-          )}
         </div>
 
         {/* Live Decision */}
@@ -531,6 +617,20 @@ export default function AITrader() {
             {displayStats.total_profit_loss >= 0 ? '+' : ''}{displayStats.total_profit_loss.toFixed(0)} KES
           </div>
           <div className="ai-stat-sub">ROI: {displayStats.roi}%</div>
+        </div>
+        <div className="ai-stat-card">
+          <div className="ai-stat-label">Wins</div>
+          <div className="ai-stat-value positive">
+            {displayStats.wins}
+          </div>
+          <div className="ai-stat-sub">Winning trades</div>
+        </div>
+        <div className="ai-stat-card">
+          <div className="ai-stat-label">Losses</div>
+          <div className="ai-stat-value negative">
+            {displayStats.losses}
+          </div>
+          <div className="ai-stat-sub">Losing trades</div>
         </div>
         <div className="ai-stat-card">
           <div className="ai-stat-label">Win Rate</div>

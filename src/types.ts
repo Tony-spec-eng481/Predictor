@@ -268,6 +268,8 @@ export interface AIStatusResponse {
   session?: AISessionStats
   config?: AIConfig
   message?: string
+  is_training?: boolean
+  last_training_result?: any
 }
 
 export interface AIHistoryResponse {
